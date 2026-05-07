@@ -1,6 +1,8 @@
 # Nebula
 在廣大的中文Blog圈，用Blogrooll 探索所有的Blog！
 一個程式可以讓你探索所有用Blogroll串起的Blog
+
+(話說Nebula中文是星雲，我想要代表在廣大宇宙尋找?)
 # 程式說明
 自動探索網站的 blogroll / links / friends 頁面，建立網站之間的連結圖，並可視覺化成互動式網路圖。
 
