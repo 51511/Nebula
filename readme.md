@@ -32,5 +32,8 @@ python visualize_graph.py
 ```
 用瀏覽器開啟blogroll_graph.html
 
+# 接下來
+- 替除不是Blog的網址，例如Youtube,Github，但目前看起來只是多出額外節點，所以更新這點不會那麼快速
+
 # License
 GPL V2
