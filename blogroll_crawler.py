@@ -50,6 +50,110 @@ REQUEST_TIMEOUT = aiohttp.ClientTimeout(total=8)
 CONCURRENCY = 5      # 同時最多幾個請求（Semaphore 控制）
 REQUEST_DELAY = 0.3  # 每個請求前的小延遲（禮貌用）
 
+# ── 過濾清單 ──────────────────────────────────────────────────────────────────
+# 這些平台/服務網域不屬於個人部落格，直接排除
+
+# 白名單：這些是個人站托管平台，不管域名比對結果如何都放行
+ALLOWED_HOSTING_SUFFIXES = {
+    "github.io",       # GitHub Pages
+    "gitlab.io",       # GitLab Pages
+    "netlify.app",     # Netlify
+    "vercel.app",      # Vercel
+    "pages.dev",       # Cloudflare Pages
+    "render.com",      # Render
+    "fly.dev",         # Fly.io
+    "surge.sh",        # Surge
+    "neocities.org",   # Neocities（個人懷舊風格站）
+    "bearblog.dev",    # Bear Blog
+    "mataroa.blog",    # Mataroa
+    "micro.blog",      # Micro.blog
+}
+
+BLOCKED_DOMAINS = {
+    # 影音 / 媒體
+    "youtube.com", "youtu.be", "vimeo.com", "twitch.tv", "bilibili.com",
+    "dailymotion.com", "tiktok.com", "niconico.com", "nicovideo.jp",
+    # 程式碼托管（注意：github.io 在白名單，不受此影響）
+    "github.com", "gitlab.com", "bitbucket.org", "codeberg.org",
+    "sourceforge.net", "gist.github.com",
+    # 社群媒體
+    "twitter.com", "x.com", "facebook.com", "instagram.com",
+    "threads.net", "mastodon.social", "bsky.app", "bluesky.social",
+    "linkedin.com", "pinterest.com", "tumblr.com", "reddit.com",
+    "weibo.com", "plurk.com", "ptt.cc", "dcard.tw",
+    # 新聞 / 媒體機構
+    "nytimes.com", "bbc.com", "bbc.co.uk", "cnn.com", "theguardian.com",
+    "reuters.com", "apnews.com", "wsj.com", "washingtonpost.com",
+    "techcrunch.com", "theverge.com", "wired.com", "arstechnica.com",
+    "engadget.com", "zdnet.com", "cnet.com",
+    # 電商 / 購物
+    "amazon.com", "amazon.co.jp", "ebay.com", "etsy.com", "shopify.com",
+    "aliexpress.com", "taobao.com", "jd.com", "rakuten.co.jp",
+    # 搜尋引擎
+    "google.com", "bing.com", "yahoo.com", "duckduckgo.com", "baidu.com",
+    # 雲端 / 儲存 / 工具
+    "dropbox.com", "drive.google.com", "onedrive.live.com", "icloud.com",
+    "notion.so", "airtable.com", "trello.com", "asana.com",
+    # 部落格平台：wordpress.com / blogger.com / blogspot.com 保留（真實個人部落格）
+    # 以下只擋純工具型建站平台
+    "medium.com", "ghost.io", "weebly.com", "wix.com", "squarespace.com",
+    "livejournal.com", "typepad.com",
+    # 技術文件 / 知識庫
+    "wikipedia.org", "wikimedia.org", "stackoverflow.com", "stackexchange.com",
+    "docs.google.com", "readthedocs.io", "gitbook.io",
+    # 圖片 / 設計
+    "flickr.com", "unsplash.com", "pexels.com", "behance.net", "dribbble.com",
+    "deviantart.com", "artstation.com",
+    # 音樂串流平台
+    "spotify.com", "soundcloud.com", "bandcamp.com", "last.fm",
+    "deezer.com", "tidal.com", "pandora.com", "iheart.com",
+    "kkbox.com", "joox.com", "streetvoice.com", "audiomack.com",
+    "music.apple.com", "music.youtube.com", "music.amazon.com",
+    "napster.com", "qobuz.com", "yandex.music", "vk.com",
+    "netease.com", "music.163.com", "qq.com", "kugou.com", "kuwo.cn",
+    # Podcast 平台
+    "anchor.fm", "buzzsprout.com", "podcasts.apple.com",
+    "podbean.com", "transistor.fm", "simplecast.com", "spreaker.com",
+    "podomatic.com", "libsyn.com", "acast.com", "podcastaddict.com",
+    # 其他大型平台
+    "paypal.com", "patreon.com", "ko-fi.com", "buymeacoffee.com",
+    "t.me", "telegram.org", "discord.com", "discord.gg",
+    "slack.com", "zoom.us", "meet.google.com",
+    "archive.org", "web.archive.org",
+}
+
+# 也封鎖這些關鍵字出現在域名中的情況（例如 cdn.xxx.com、api.xxx.com）
+BLOCKED_DOMAIN_KEYWORDS = {
+    "cdn.", "api.", "static.", "assets.", "img.", "images.",
+    "mail.", "smtp.", "ftp.", "ns1.", "ns2.",
+}
+
+
+def is_blog_domain(domain: str) -> bool:
+    """判斷域名是否可能是個人/獨立部落格。回傳 False 代表應排除。"""
+    bare = domain.removeprefix("www.")
+
+    # ── 第一步：白名單優先，托管平台直接放行 ──
+    # 例如 username.github.io、mysite.netlify.app
+    for suffix in ALLOWED_HOSTING_SUFFIXES:
+        if bare == suffix or bare.endswith("." + suffix):
+            return True
+
+    # ── 第二步：封鎖清單，逐層比對 ──
+    # 例如 news.bbc.co.uk → 能比到 bbc.co.uk
+    parts = bare.split(".")
+    for i in range(len(parts) - 1):
+        candidate = ".".join(parts[i:])
+        if candidate in BLOCKED_DOMAINS:
+            return False
+
+    # ── 第三步：子域名前綴比對 ──
+    for kw in BLOCKED_DOMAIN_KEYWORDS:
+        if bare.startswith(kw):
+            return False
+
+    return True
+
 
 # ── 工具函數 ──────────────────────────────────────────────────────────────────
 
@@ -79,6 +183,11 @@ def parse_external_links(html: str, base_url: str, visited_domains: set) -> list
         if not domain or domain == base_domain:
             continue
         if domain in visited_domains or domain in seen:
+            continue
+
+        # ── 新增：過濾非部落格網域 ──
+        if not is_blog_domain(domain):
+            log.debug(f"  ⊘ 過濾非部落格域名: {domain}")
             continue
 
         seen.add(domain)
@@ -167,7 +276,7 @@ async def crawl(seed_url: str, max_depth: int = 3, max_nodes: int = 300) -> dict
         seed_domain = get_domain(seed_url)
         visited_domains.add(seed_domain)
         initial_links = parse_external_links(html, seed_url, visited_domains)
-        log.info(f"起始頁面解析到 {len(initial_links)} 個外部連結")
+        log.info(f"起始頁面解析到 {len(initial_links)} 個外部連結（已過濾非部落格）")
 
         graph[seed_domain] = {
             "blogroll_url": seed_url,

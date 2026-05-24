@@ -32,8 +32,8 @@ python visualize_graph.py
 ```
 用瀏覽器開啟blogroll_graph.html
 
-# 接下來
-- 替除不是Blog的網址，例如Youtube,Github，但目前看起來只是多出額外節點，所以更新這點不會那麼快速
+# 替除網站規則
+由於有些人BlogRoll會放跟Blog不相干的網站，所以新增替除規則，可以看到"blogroll_crawler.py"
 
 # License
 GPL V2
